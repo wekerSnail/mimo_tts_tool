@@ -146,9 +146,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         apiKey: widget.storage.apiKey,
         model: model,
         text: text,
-        styleInstruction: _styleController.text.trim().isEmpty
-            ? null
-            : _styleController.text.trim(),
+        styleInstruction: model == 'mimo-v2.5-tts-voicedesign'
+            ? _voiceDescController.text.trim().isEmpty
+                ? null
+                : _voiceDescController.text.trim()
+            : _styleController.text.trim().isEmpty
+                ? null
+                : _styleController.text.trim(),
         voice: model == 'mimo-v2.5-tts' ? _selectedVoice : null,
         voiceCloneBase64: _cloneAudioBase64,
         optimizeTextPreview: _optimizeTextPreview,

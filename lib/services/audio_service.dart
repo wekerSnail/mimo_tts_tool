@@ -54,7 +54,12 @@ class AudioService {
 
   Future<void> pause() async => await _player.pause();
   Future<void> resume() async => await _player.resume();
-  Future<void> stop() async => await _player.stop();
+  Future<void> stop() async {
+    await _player.stop();
+    _position = Duration.zero;
+    _isPlaying = false;
+    onStateChanged?.call();
+  }
 
   Future<void> seek(Duration position) async =>
       await _player.seek(position);
