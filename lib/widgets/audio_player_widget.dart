@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import '../services/audio_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/audio_provider.dart';
+import '../providers/home_state_provider.dart';
 
-class AudioPlayerWidget extends StatelessWidget {
-  final AudioService audioService;
-  final List<int>? currentAudioBytes;
+class AudioPlayerWidget extends ConsumerWidget {
   final VoidCallback? onSave;
 
   const AudioPlayerWidget({
     super.key,
-    required this.audioService,
-    this.currentAudioBytes,
     this.onSave,
   });
 
@@ -20,8 +18,11 @@ class AudioPlayerWidget extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final hasAudio = currentAudioBytes != null && currentAudioBytes!.isNotEmpty;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(audioStateProvider);
+    final audioService = ref.read(audioServiceProvider);
+    final currentAudioBytes = ref.watch(homeStateProvider).currentAudioBytes;
+    final hasAudio = currentAudioBytes != null && currentAudioBytes.isNotEmpty;
 
     return Card(
       child: Padding(
@@ -37,7 +38,7 @@ class AudioPlayerWidget extends StatelessWidget {
                 const Spacer(),
                 if (hasAudio)
                   Text(
-                    '${(currentAudioBytes!.length / 1024).toStringAsFixed(1)} KB',
+                    '${(currentAudioBytes.length / 1024).toStringAsFixed(1)} KB',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
               ],
@@ -53,23 +54,23 @@ class AudioPlayerWidget extends StatelessWidget {
             else ...[
               Row(
                 children: [
-                  Text(_formatDuration(audioService.position)),
+                  Text(_formatDuration(state.position)),
                   Expanded(
                     child: Slider(
-                      value: audioService.duration.inMilliseconds > 0
-                          ? audioService.position.inMilliseconds
+                      value: state.duration.inMilliseconds > 0
+                          ? state.position.inMilliseconds
                               .toDouble()
-                              .clamp(0, audioService.duration.inMilliseconds.toDouble())
+                              .clamp(0, state.duration.inMilliseconds.toDouble())
                           : 0,
-                      max: audioService.duration.inMilliseconds > 0
-                          ? audioService.duration.inMilliseconds.toDouble()
+                      max: state.duration.inMilliseconds > 0
+                          ? state.duration.inMilliseconds.toDouble()
                           : 1,
                       onChanged: (v) {
                         audioService.seek(Duration(milliseconds: v.toInt()));
                       },
                     ),
                   ),
-                  Text(_formatDuration(audioService.duration)),
+                  Text(_formatDuration(state.duration)),
                 ],
               ),
               Row(
@@ -84,17 +85,17 @@ class AudioPlayerWidget extends StatelessWidget {
                   IconButton(
                     iconSize: 48,
                     icon: Icon(
-                      audioService.isPlaying
+                      state.isPlaying
                           ? Icons.pause_circle_filled
                           : Icons.play_circle_filled,
                     ),
                     onPressed: () {
-                      if (audioService.isPlaying) {
+                      if (state.isPlaying) {
                         audioService.pause();
-                      } else if (audioService.position > Duration.zero) {
+                      } else if (state.position > Duration.zero) {
                         audioService.resume();
                       } else if (hasAudio) {
-                        audioService.play(currentAudioBytes!);
+                        audioService.play(currentAudioBytes);
                       }
                     },
                   ),

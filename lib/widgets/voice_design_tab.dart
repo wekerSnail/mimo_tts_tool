@@ -1,30 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/home_state_provider.dart';
 
-class VoiceDesignTab extends StatefulWidget {
+class VoiceDesignTab extends ConsumerWidget {
   final TextEditingController textController;
   final TextEditingController voiceDescController;
-  final bool optimizeTextPreview;
-  final ValueChanged<bool> onOptimizeChanged;
   final VoidCallback onGenerate;
-  final bool isGenerating;
 
   const VoiceDesignTab({
     super.key,
     required this.textController,
     required this.voiceDescController,
-    required this.optimizeTextPreview,
-    required this.onOptimizeChanged,
     required this.onGenerate,
-    required this.isGenerating,
   });
 
   @override
-  State<VoiceDesignTab> createState() => _VoiceDesignTabState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final homeState = ref.watch(homeStateProvider);
 
-class _VoiceDesignTabState extends State<VoiceDesignTab> {
-  @override
-  Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -33,7 +26,7 @@ class _VoiceDesignTabState extends State<VoiceDesignTab> {
           const Text('音色描述', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextField(
-            controller: widget.voiceDescController,
+            controller: voiceDescController,
             maxLines: 3,
             decoration: const InputDecoration(
               hintText: '例如：年轻女性，温柔甜美的声音，语速适中',
@@ -45,8 +38,10 @@ class _VoiceDesignTabState extends State<VoiceDesignTab> {
           CheckboxListTile(
             title: const Text('智能润色文本'),
             subtitle: const Text('开启后可省略合成文本，由AI自动润色'),
-            value: widget.optimizeTextPreview,
-            onChanged: (v) => widget.onOptimizeChanged(v ?? false),
+            value: homeState.optimizeTextPreview,
+            onChanged: (v) => ref
+                .read(homeStateProvider.notifier)
+                .updateOptimizeTextPreview(v ?? false),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
           ),
@@ -54,10 +49,10 @@ class _VoiceDesignTabState extends State<VoiceDesignTab> {
           const Text('合成文本', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextField(
-            controller: widget.textController,
+            controller: textController,
             maxLines: 5,
             decoration: InputDecoration(
-              hintText: widget.optimizeTextPreview
+              hintText: homeState.optimizeTextPreview
                   ? '可留空，由AI自动生成文本'
                   : '请输入要合成语音的文本...',
               border: const OutlineInputBorder(),
@@ -66,15 +61,15 @@ class _VoiceDesignTabState extends State<VoiceDesignTab> {
           const SizedBox(height: 16),
           Center(
             child: FilledButton.icon(
-              onPressed: widget.isGenerating ? null : widget.onGenerate,
-              icon: widget.isGenerating
+              onPressed: homeState.isGenerating ? null : onGenerate,
+              icon: homeState.isGenerating
                   ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.play_arrow),
-              label: Text(widget.isGenerating ? '生成中...' : '生成语音'),
+              label: Text(homeState.isGenerating ? '生成中...' : '生成语音'),
             ),
           ),
         ],

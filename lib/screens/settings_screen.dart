@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/storage_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/storage_provider.dart';
+import '../providers/home_state_provider.dart';
+import '../providers/server_provider.dart';
 
-class SettingsScreen extends StatefulWidget {
-  final StorageService storage;
-  final VoidCallback onServerToggle;
-
-  const SettingsScreen({
-    super.key,
-    required this.storage,
-    required this.onServerToggle,
-  });
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late final TextEditingController _portController;
   late bool _serverEnabled;
   late int _port;
@@ -24,8 +20,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _serverEnabled = widget.storage.serverEnabled;
-    _port = widget.storage.serverPort;
+    final storage = ref.read(storageProvider);
+    _serverEnabled = storage.serverEnabled;
+    _port = storage.serverPort;
     _portController = TextEditingController(text: _port.toString());
   }
 
@@ -36,9 +33,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _savePort() {
+    final storage = ref.read(storageProvider);
     final p = int.tryParse(_portController.text);
     if (p != null && p > 0 && p <= 65535) {
-      widget.storage.serverPort = p;
+      storage.serverPort = p;
       _port = p;
     } else {
       _portController.text = _port.toString();
@@ -47,6 +45,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final storage = ref.watch(storageProvider);
+
     final serverApiDoc = '''POST http://localhost:$_port/v1/audio/speech
 
 请求参数 (JSON):
@@ -84,11 +84,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Text('API Key: '),
                       Expanded(
                         child: Text(
-                          widget.storage.apiKey.isNotEmpty
-                              ? '${widget.storage.apiKey.substring(0, 8)}...'
+                          storage.apiKey.isNotEmpty
+                              ? '${storage.apiKey.substring(0, 8)}...'
                               : '未配置',
                           style: TextStyle(
-                            color: widget.storage.apiKey.isNotEmpty ? null : Colors.red,
+                            color: storage.apiKey.isNotEmpty ? null : Colors.red,
                           ),
                         ),
                       ),
@@ -113,8 +113,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     value: _serverEnabled,
                     onChanged: (v) {
                       setState(() => _serverEnabled = v);
-                      widget.storage.serverEnabled = v;
-                      widget.onServerToggle();
+                      storage.serverEnabled = v;
+                      final notifier = ref.read(homeStateProvider.notifier);
+                      if (v) {
+                        notifier.startServer().then((ok) {
+                          ref.read(serverRunningProvider.notifier).state = ok;
+                        });
+                      } else {
+                        notifier.stopServer();
+                        ref.read(serverRunningProvider.notifier).state = false;
+                      }
                     },
                     contentPadding: EdgeInsets.zero,
                   ),

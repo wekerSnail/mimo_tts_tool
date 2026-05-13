@@ -1,31 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/mimo_tts_service.dart';
+import '../providers/home_state_provider.dart';
 
-class BuiltInVoiceTab extends StatefulWidget {
+class BuiltInVoiceTab extends ConsumerWidget {
   final TextEditingController textController;
   final TextEditingController styleController;
-  final String selectedVoice;
-  final ValueChanged<String> onVoiceChanged;
   final VoidCallback onGenerate;
-  final bool isGenerating;
 
   const BuiltInVoiceTab({
     super.key,
     required this.textController,
     required this.styleController,
-    required this.selectedVoice,
-    required this.onVoiceChanged,
     required this.onGenerate,
-    required this.isGenerating,
   });
 
   @override
-  State<BuiltInVoiceTab> createState() => _BuiltInVoiceTabState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final homeState = ref.watch(homeStateProvider);
 
-class _BuiltInVoiceTabState extends State<BuiltInVoiceTab> {
-  @override
-  Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -41,11 +34,12 @@ class _BuiltInVoiceTabState extends State<BuiltInVoiceTab> {
               final name = v['name']!;
               final lang = v['lang']!;
               final gender = v['gender']!;
-              final selected = widget.selectedVoice == id;
+              final selected = homeState.selectedVoice == id;
               return ChoiceChip(
                 label: Text('$name ($lang $gender)'),
                 selected: selected,
-                onSelected: (_) => widget.onVoiceChanged(id),
+                onSelected: (_) =>
+                    ref.read(homeStateProvider.notifier).updateVoice(id),
               );
             }).toList(),
           ),
@@ -53,7 +47,7 @@ class _BuiltInVoiceTabState extends State<BuiltInVoiceTab> {
           const Text('风格指令（可选）', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextField(
-            controller: widget.styleController,
+            controller: styleController,
             maxLines: 2,
             decoration: const InputDecoration(
               hintText: '例如：用温柔欢快的语气，语速稍快',
@@ -65,7 +59,7 @@ class _BuiltInVoiceTabState extends State<BuiltInVoiceTab> {
           const Text('合成文本', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextField(
-            controller: widget.textController,
+            controller: textController,
             maxLines: 5,
             decoration: const InputDecoration(
               hintText: '请输入要合成语音的文本...',
@@ -75,15 +69,15 @@ class _BuiltInVoiceTabState extends State<BuiltInVoiceTab> {
           const SizedBox(height: 16),
           Center(
             child: FilledButton.icon(
-              onPressed: widget.isGenerating ? null : widget.onGenerate,
-              icon: widget.isGenerating
+              onPressed: homeState.isGenerating ? null : onGenerate,
+              icon: homeState.isGenerating
                   ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.play_arrow),
-              label: Text(widget.isGenerating ? '生成中...' : '生成语音'),
+              label: Text(homeState.isGenerating ? '生成中...' : '生成语音'),
             ),
           ),
         ],

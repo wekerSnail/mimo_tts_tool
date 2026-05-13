@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/storage_service.dart';
+import 'providers/storage_provider.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final storage = StorageService();
   await storage.init();
-  runApp(MyApp(storage: storage));
+  runApp(
+    ProviderScope(
+      overrides: [
+        storageProvider.overrideWithValue(storage),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  final StorageService storage;
-
-  const MyApp({super.key, required this.storage});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +37,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
       ),
       themeMode: ThemeMode.system,
-      home: HomeScreen(storage: storage),
+      home: const HomeScreen(),
     );
   }
 }

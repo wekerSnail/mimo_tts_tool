@@ -1,33 +1,27 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
+import '../providers/home_state_provider.dart';
 
-class VoiceCloneTab extends StatefulWidget {
+class VoiceCloneTab extends ConsumerStatefulWidget {
   final TextEditingController textController;
   final TextEditingController styleController;
-  final String? cloneAudioPath;
-  final String? cloneAudioBase64;
-  final ValueChanged<(String?, String?)> onFilePicked;
   final VoidCallback onGenerate;
-  final bool isGenerating;
 
   const VoiceCloneTab({
     super.key,
     required this.textController,
     required this.styleController,
-    required this.cloneAudioPath,
-    required this.cloneAudioBase64,
-    required this.onFilePicked,
     required this.onGenerate,
-    required this.isGenerating,
   });
 
   @override
-  State<VoiceCloneTab> createState() => _VoiceCloneTabState();
+  ConsumerState<VoiceCloneTab> createState() => _VoiceCloneTabState();
 }
 
-class _VoiceCloneTabState extends State<VoiceCloneTab> {
+class _VoiceCloneTabState extends ConsumerState<VoiceCloneTab> {
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -40,12 +34,17 @@ class _VoiceCloneTabState extends State<VoiceCloneTab> {
       final mime = ext == 'mp3' ? 'audio/mpeg' : 'audio/wav';
       final b64 = base64Encode(bytes);
       final dataUri = 'data:$mime;base64,$b64';
-      widget.onFilePicked((file.path, dataUri));
+      ref.read(homeStateProvider.notifier).updateCloneFile(
+            path: file.path,
+            base64: dataUri,
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final homeState = ref.watch(homeStateProvider);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -63,11 +62,11 @@ class _VoiceCloneTabState extends State<VoiceCloneTab> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    widget.cloneAudioPath != null
-                        ? widget.cloneAudioPath!.split(Platform.pathSeparator).last
+                    homeState.cloneAudioPath != null
+                        ? homeState.cloneAudioPath!.split(Platform.pathSeparator).last
                         : '未选择文件',
                     style: TextStyle(
-                      color: widget.cloneAudioPath != null ? null : Colors.grey,
+                      color: homeState.cloneAudioPath != null ? null : Colors.grey,
                     ),
                   ),
                 ),
@@ -109,15 +108,15 @@ class _VoiceCloneTabState extends State<VoiceCloneTab> {
           const SizedBox(height: 16),
           Center(
             child: FilledButton.icon(
-              onPressed: widget.isGenerating ? null : widget.onGenerate,
-              icon: widget.isGenerating
+              onPressed: homeState.isGenerating ? null : widget.onGenerate,
+              icon: homeState.isGenerating
                   ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.play_arrow),
-              label: Text(widget.isGenerating ? '生成中...' : '生成语音'),
+              label: Text(homeState.isGenerating ? '生成中...' : '生成语音'),
             ),
           ),
         ],
